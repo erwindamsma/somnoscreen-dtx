@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+*.png binary
+*.edf binary
+*.EDF binary
+*.dtx binary
+*.DTX binary
+*.dt2 binary

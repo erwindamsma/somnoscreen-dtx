@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "somnoscreen-dtx"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Read SOMNOscreen plus raw recordings (DATEN1.DTX) and convert them to EDF"
 readme = "README.md"
 license = "MIT"
@@ -14,24 +14,51 @@ requires-python = ">=3.10"
 dependencies = ["numpy>=1.24"]
 keywords = ["somnoscreen", "somnomedics", "polygraphy", "sleep", "edf", "dtx", "adpcm"]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
 
 [project.optional-dependencies]
 ecg = ["scipy>=1.10"]
 test = ["pytest>=7", "scipy>=1.10"]
+dev = ["pytest>=7", "scipy>=1.10", "ruff>=0.15", "build>=1.2", "twine>=6"]
 
 [project.scripts]
 somnoscreen-dtx = "somnoscreen_dtx.cli:main"
 
 [project.urls]
 Repository = "https://github.com/erwindamsma/somnoscreen-dtx"
+Changelog = "https://github.com/erwindamsma/somnoscreen-dtx/blob/main/CHANGELOG.md"
+Issues = "https://github.com/erwindamsma/somnoscreen-dtx/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "somnoscreen_dtx.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src", "tests"]
+pythonpath = ["src", "tests", "tools"]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "C4", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["somnoscreen_dtx", "synth", "check_dist"]
+
+[tool.ruff.format]
+quote-style = "single"
