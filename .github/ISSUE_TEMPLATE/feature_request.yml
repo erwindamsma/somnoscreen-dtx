@@ -1,0 +1,29 @@
+name: "Feature request"
+description: "Suggest a change or an addition."
+labels: ["enhancement"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      Thanks for the suggestion. This project reads and converts recordings; it does not score or interpret them, and that is deliberate.
+- type: textarea
+  id: "problem"
+  attributes:
+    label: "Problem"
+    description: "What are you trying to do, and what stops you today?"
+  validations:
+    required: true
+- type: textarea
+  id: "proposal"
+  attributes:
+    label: "Proposed solution"
+    description: "How it could work, for example the command or the Python call you would like to write."
+  validations:
+    required: false
+- type: textarea
+  id: "alternatives"
+  attributes:
+    label: "Alternatives"
+    description: "What you tried or considered instead."
+  validations:
+    required: false

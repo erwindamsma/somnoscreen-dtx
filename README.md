@@ -1,5 +1,9 @@
 # somnoscreen-dtx
 
+[![CI](https://github.com/erwindamsma/somnoscreen-dtx/actions/workflows/ci.yml/badge.svg)](https://github.com/erwindamsma/somnoscreen-dtx/actions/workflows/ci.yml)
+[![Python 3.10–3.14](https://img.shields.io/badge/python-3.10%E2%80%933.14-3776AB)](pyproject.toml)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-8AB803)](LICENSE)
+
 Read the raw recordings of a **SOMNOmedics SOMNOscreen plus** sleep recorder
 (`DATEN1.DTX` + `konfig.dt2`) and convert them to EDF, so they open in EDFbrowser, MNE,
 or any other tool that reads EDF.
@@ -60,8 +64,8 @@ From Python:
 ```python
 from somnoscreen_dtx import read_dtx, write_edf
 
-rec = read_dtx('DATEN1.DTX')          # finds konfig.dt2 next to it
-spo2 = rec.signals['spo2']            # Signal(label, rate, data, unit)
+rec = read_dtx('DATEN1.DTX')  # finds konfig.dt2 next to it
+spo2 = rec.signals['spo2']  # Signal(label, rate, data, unit)
 print(rec.start, rec.duration, spo2.rate, spo2.data[:8])
 write_edf(rec, 'recording.edf')
 ```
@@ -91,8 +95,9 @@ Signal keys: `flow_th`, `ecg`, `flow_pr`, `abdomen`, `snore`, `thorax`, `pleth`
 
 - **One montage.** Only the 12-channel PG montage (thermistor and pressure flow, effort
   belts, snore, ECG-AUX, oximetry, position) has been seen. A different `konfig.dt2` is
-  refused rather than decoded wrongly. A sample recording of another montage, with the
-  patient fields blanked, is welcome.
+  refused rather than decoded wrongly. Open a
+  [Recording not supported](https://github.com/erwindamsma/somnoscreen-dtx/issues/new?template=unsupported_recording.yml)
+  issue to get another montage added; never attach the recording itself.
 - **No calibration**, see above.
 - **ECG interference.** In the recording examined, the recorder's own 37.5 Hz interference
   swamped the ECG. `--clean-ecg` removes it; the raw channel stays untouched.
@@ -102,13 +107,23 @@ Signal keys: `flow_th`, `ecg`, `flow_pr`, `abdomen`, `snore`, `thorax`, `pleth`
 ## Tests
 
 ```
-pip install -e ".[test]"
+pip install -e ".[dev]"
 pytest
 ```
 
 The tests build synthetic recordings with an encoder that mirrors the recorder, decode them
 and check every sample. No real recording is included.
 
-## License
+## Contributing and support
 
-MIT
+- Questions, bugs and feature requests: [issues](https://github.com/erwindamsma/somnoscreen-dtx/issues/new/choose).
+- How to propose a change, the checks to run and how to add a montage: [CONTRIBUTING.md](CONTRIBUTING.md).
+- Security issues are reported privately: [SECURITY.md](SECURITY.md).
+- What changed per version: [CHANGELOG.md](CHANGELOG.md).
+
+Never attach a recording or an EDF file to an issue or a pull request: they contain health
+data and personal details.
+
+## Licence
+
+[MIT](LICENSE)

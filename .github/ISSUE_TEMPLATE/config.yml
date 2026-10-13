@@ -1,0 +1,9 @@
+# GitHub Discussions is not enabled for this repository, so questions go to issues through the Question template.
+blank_issues_enabled: false
+contact_links:
+  - name: "Format description"
+    url: "https://github.com/erwindamsma/somnoscreen-dtx/blob/main/FORMAT.md"
+    about: "How DATEN1.DTX and konfig.dt2 are laid out, and what is known and unknown."
+  - name: "Report a security vulnerability"
+    url: "https://github.com/erwindamsma/somnoscreen-dtx/security/advisories/new"
+    about: "Report vulnerabilities privately, never in a public issue."

@@ -1,0 +1,49 @@
+name: "Bug report"
+description: "A recording that decodes wrongly, a crash, or an EDF file that other software cannot read."
+labels: ["bug"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      Thanks for taking the time to report this.
+
+      **Never attach a recording (`DATEN1.DTX`, `konfig.dt2`) or an EDF file to an issue.** They contain health data, and `konfig.dt2` also holds the patient's name, birth date and hospital numbers. The output of `somnoscreen-dtx info` is anonymous unless you add `--show-patient`: do not add it here.
+
+      A recording that is refused as an unknown configuration has its own template: "Recording not supported".
+- type: input
+  id: "version"
+  attributes:
+    label: "somnoscreen-dtx version"
+    description: "The output of `somnoscreen-dtx --version`."
+  validations:
+    required: true
+- type: input
+  id: "environment"
+  attributes:
+    label: "Python version and operating system"
+    description: "For example Python 3.12 on Windows 11."
+  validations:
+    required: true
+- type: textarea
+  id: "summary"
+  attributes:
+    label: "What happens"
+    description: "The command you ran, what you expected and what happened instead. For an EDF problem, name the program that reads the file and its message."
+  validations:
+    required: true
+- type: textarea
+  id: "info"
+  attributes:
+    label: "Output of somnoscreen-dtx info"
+    description: "`somnoscreen-dtx info DATEN1.DTX`, without `--show-patient`. The check column shows whether the decoding lines up with the recorder."
+    render: text
+  validations:
+    required: false
+- type: textarea
+  id: "traceback"
+  attributes:
+    label: "Error output"
+    description: "The full traceback or error message. Replace local paths and user names you do not want to share."
+    render: text
+  validations:
+    required: false

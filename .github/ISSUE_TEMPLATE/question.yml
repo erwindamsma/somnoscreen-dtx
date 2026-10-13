@@ -1,0 +1,22 @@
+name: "Question"
+description: "Ask how to use the tool or about the file format."
+labels: ["question"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      The [README](https://github.com/erwindamsma/somnoscreen-dtx#readme) and the [format description](https://github.com/erwindamsma/somnoscreen-dtx/blob/main/FORMAT.md) answer most questions. Never attach a recording or an EDF file: they contain health data and personal details.
+- type: textarea
+  id: "question"
+  attributes:
+    label: "Question"
+    description: "What you want to achieve and what you tried."
+  validations:
+    required: true
+- type: input
+  id: "version"
+  attributes:
+    label: "Version"
+    description: "The output of `somnoscreen-dtx --version`, if relevant."
+  validations:
+    required: false

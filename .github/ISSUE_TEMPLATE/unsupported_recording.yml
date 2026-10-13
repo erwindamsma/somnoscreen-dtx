@@ -1,0 +1,39 @@
+name: "Recording not supported"
+description: "A recording that is refused as an unknown channel configuration, or decodes with a low check percentage."
+labels: ["montage"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      Only the 12-channel PG montage is known so far. Another montage most likely uses the same block structure with a different slot layout; [Other montages](https://github.com/erwindamsma/somnoscreen-dtx/blob/main/FORMAT.md#other-montages) explains what is needed to add one.
+
+      **Never attach a recording (`DATEN1.DTX`, `konfig.dt2`) or an EDF file to an issue.** They contain health data and personal details. If a sample is needed, a private way to share it will be arranged.
+- type: textarea
+  id: "error"
+  attributes:
+    label: "Error message"
+    description: "The message of `somnoscreen-dtx info DATEN1.DTX`. For an unknown configuration it lists every channel with its sampling rate."
+    render: text
+  validations:
+    required: true
+- type: input
+  id: "recorder"
+  attributes:
+    label: "Recorder and study type"
+    description: "As far as you know: the recorder model, and the kind of study, for example polygraphy, polysomnography with EEG, or long-term ECG."
+  validations:
+    required: false
+- type: textarea
+  id: "channels"
+  attributes:
+    label: "Sensors used"
+    description: "The sensors that were attached during the recording, if you know them."
+  validations:
+    required: false
+- type: checkboxes
+  id: "sample"
+  attributes:
+    label: "Sample recording"
+    options:
+      - label: "I can share a sample recording privately, with the patient fields in konfig.dt2 blanked."
+        required: false
