@@ -1,16 +1,19 @@
 """Synthetic DTX and konfig.dt2 files, encoded the way the recorder encodes them."""
+
 import numpy as np
 
 from somnoscreen_dtx import adpcm
 from somnoscreen_dtx.dtx import BLOCK_SECONDS, PG12, PREAMBLE_BYTES
 from somnoscreen_dtx.konfig import CHANNEL_TABLE, CLOCK_DIVIDER, FIRST_CHANNEL, SAMPLES_PER_BLOCK
 
+# fmt: off
 CHANNEL_NUMBERS = (37, 39, 43, 45, 47, 48, 50, 54, 55, 58, 59, 60)
 NAMES = ('Flow Th', 'ECG-AUX', 'Flow Pr', 'Abdomen', 'Snore', 'Thorax',
          'Pos.', 'Light', 'Battery', 'Pleth', 'Pulse', 'SPO2')
-VALUES = (0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xBFFF, 0xFFFF, 0x0003, 0x03FF, 0x0002, 0x00FF,
-          0x0002, 0x0002)
+VALUES = (0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xBFFF, 0xFFFF,
+          0x0003, 0x03FF, 0x0002, 0x00FF, 0x0002, 0x0002)
 DIVIDERS = (8, 1, 1, 8, 1, 8, 64, 64, 64, 2, 64, 64)
+# fmt: on
 INITIAL = ((11, 8), (11, 8), (-11, 8), (-11, 8), (11, 8), (-11, 8))
 
 
@@ -65,16 +68,16 @@ def make_dtx(signals, header, blocks, truncated=150):
     recon, tails = {}, []
     for c, role in enumerate(PG12.tail):
         slots = PG12.slots(role)
-        codes, recon[role], states = _encode(signals[role], slots, blocks, INITIAL[c],
-                                             adpcm.INT16)
+        codes, recon[role], states = _encode(signals[role], slots, blocks, INITIAL[c], adpcm.INT16)
         nibbles[:blocks, slots] = codes
         tails.append(states)
     slots = PG12.slots(PG12.header_adpcm)
     pleth_start = (int(signals['pleth'][0]), 0)
-    codes, recon['pleth'], pleth_states = _encode(signals['pleth'], slots, blocks, pleth_start,
-                                                  adpcm.UINT8)
+    codes, recon['pleth'], pleth_states = _encode(
+        signals['pleth'], slots, blocks, pleth_start, adpcm.UINT8
+    )
     nibbles[:blocks, slots] = codes
-    pleth_states = [pleth_start] + pleth_states
+    pleth_states = [pleth_start, *pleth_states]
 
     out = bytearray(PREAMBLE_BYTES)
     for pred, index in INITIAL:
@@ -100,7 +103,7 @@ def make_konfig(signature=None):
     raw = bytearray(2048)
 
     def put(offset, text):
-        raw[offset:offset + len(text)] = text.encode('latin-1')
+        raw[offset : offset + len(text)] = text.encode('latin-1')
 
     put(0x09, 'Test')
     put(0x1E, 'T.')
@@ -118,7 +121,7 @@ def make_konfig(signature=None):
         if number in CHANNEL_NUMBERS:
             k = CHANNEL_NUMBERS.index(number)
             put(entry, NAMES[k])
-            raw[entry + 8:entry + 10] = VALUES[k].to_bytes(2, 'big')
+            raw[entry + 8 : entry + 10] = VALUES[k].to_bytes(2, 'big')
             raw[SAMPLES_PER_BLOCK + i] = per_block[k]
             raw[CLOCK_DIVIDER + i] = DIVIDERS[k]
         else:

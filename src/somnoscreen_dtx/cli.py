@@ -19,8 +19,11 @@ def info(args):
     print(f'File:      {args.dtx}')
     print(f'Montage:   {rec.montage.name}')
     print(f'Start:     {rec.start or "unknown (no konfig.dt2)"}')
-    print(f'Duration:  {hours}:{rest // 60:02d}:{rest % 60:02d} ({rec.blocks} blocks of 0.25 s'
-          + (f', {rec.trailing_bytes} trailing bytes' if rec.trailing_bytes else '') + ')')
+    print(
+        f'Duration:  {hours}:{rest // 60:02d}:{rest % 60:02d} ({rec.blocks} blocks of 0.25 s'
+        + (f', {rec.trailing_bytes} trailing bytes' if rec.trailing_bytes else '')
+        + ')'
+    )
     print()
     print(f'{"Channel":<16}{"Rate":>9}  Check')
     for role in rec.montage.roles:
@@ -33,13 +36,19 @@ def info(args):
     if args.show_patient and rec.konfig is not None:
         k = rec.konfig
         print()
-        print(f'Patient:   {k.surname} {k.initials}, {k.sex}, born {k.birth_date}, '
-              f'{k.height_cm} cm, {k.weight_kg} kg')
+        print(
+            f'Patient:   {k.surname} {k.initials}, {k.sex}, born {k.birth_date}, '
+            f'{k.height_cm} cm, {k.weight_kg} kg'
+        )
     positions = rec.signals['position'].data
     print()
-    print('Body position (minutes):', ', '.join(
-        f'{POSITIONS.get(int(code), code)} {count * 0.25 / 60:.0f}'
-        for code, count in zip(*np.unique(positions, return_counts=True))))
+    print(
+        'Body position (minutes):',
+        ', '.join(
+            f'{POSITIONS.get(int(code), code)} {count * 0.25 / 60:.0f}'
+            for code, count in zip(*np.unique(positions, return_counts=True), strict=True)
+        ),
+    )
 
 
 def edf(args):
@@ -52,7 +61,8 @@ def edf(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog='somnoscreen-dtx',
-        description='Read SOMNOscreen plus raw recordings (DATEN1.DTX + konfig.dt2).')
+        description='Read SOMNOscreen plus raw recordings (DATEN1.DTX + konfig.dt2).',
+    )
     sub = parser.add_subparsers(dest='command', required=True)
 
     p = sub.add_parser('info', help='show recording details and a decoding check')
@@ -65,10 +75,16 @@ def main(argv=None):
     p.add_argument('dtx', help='path to DATEN1.DTX')
     p.add_argument('-o', '--output', help='output file (default: DTX name with .edf)')
     p.add_argument('--konfig', help='path to konfig.dt2 (default: next to the DTX file)')
-    p.add_argument('--clean-ecg', action='store_true',
-                   help='add an ECG channel with the recorder interference removed (needs scipy)')
-    p.add_argument('--include-patient', action='store_true',
-                   help='copy name, sex and birth date into the EDF header (default: anonymous)')
+    p.add_argument(
+        '--clean-ecg',
+        action='store_true',
+        help='add an ECG channel with the recorder interference removed (needs scipy)',
+    )
+    p.add_argument(
+        '--include-patient',
+        action='store_true',
+        help='copy name, sex and birth date into the EDF header (default: anonymous)',
+    )
     p.set_defaults(func=edf)
 
     args = parser.parse_args(argv)

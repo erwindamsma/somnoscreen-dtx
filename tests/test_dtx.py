@@ -5,7 +5,6 @@ import pytest
 
 from somnoscreen_dtx import UnsupportedMontage, read_dtx, read_konfig
 from somnoscreen_dtx.dtx import PG12
-
 from synth import make_dtx, make_konfig, make_signals
 
 BLOCKS = 40
@@ -30,7 +29,7 @@ def test_waveforms_decode_exactly(recording):
 
 def test_every_block_lines_up_with_the_stored_state(recording):
     rec = read_dtx(recording[0] / 'DATEN1.DTX')
-    assert rec.consistency == {role: 1.0 for role in rec.consistency}
+    assert rec.consistency == dict.fromkeys(rec.consistency, 1.0)
 
 
 def test_reconstruction_follows_the_input(recording):

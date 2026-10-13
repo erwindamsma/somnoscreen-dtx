@@ -1,4 +1,5 @@
 """Decoder for DATEN1.DTX, the raw recording of a SOMNOscreen plus. See FORMAT.md."""
+
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -32,6 +33,7 @@ class Montage:
     frame         role per slot of a 31-slot frame (1/32 s)
     signature     samples per block of the konfig channels, in order
     """
+
     name: str
     roles: tuple
     tail: tuple
@@ -49,6 +51,7 @@ class Montage:
 
 
 _E, _P, _S, _L = 'ecg', 'flow_pr', 'snore', 'pleth'
+# fmt: off
 PG12 = Montage(
     name='PG, 12 channels (thermistor + pressure flow)',
     roles=('flow_th', 'ecg', 'flow_pr', 'abdomen', 'snore', 'thorax',
@@ -60,11 +63,22 @@ PG12 = Montage(
     frame=(_E, _P, _S, _E, _P, _S, _L, _E, _P, _S, _E, _P, _S, _L, _E, _P, _S, _E, _P, _S, _L,
            _E, _P, _S, 'flow_th', _E, _P, 'abdomen', _S, 'thorax', _L),
     signature=(8, 64, 64, 8, 64, 8, 8, 8, 8, 32, 1, 1),
-    default_labels={'flow_th': 'Flow Th', 'ecg': 'ECG-AUX', 'flow_pr': 'Flow Pr',
-                    'abdomen': 'Abdomen', 'snore': 'Snore', 'thorax': 'Thorax',
-                    'position': 'Pos.', 'light': 'Light', 'battery': 'Battery',
-                    'pleth': 'Pleth', 'pulse': 'Pulse', 'spo2': 'SPO2'},
+    default_labels={
+        'flow_th': 'Flow Th',
+        'ecg': 'ECG-AUX',
+        'flow_pr': 'Flow Pr',
+        'abdomen': 'Abdomen',
+        'snore': 'Snore',
+        'thorax': 'Thorax',
+        'position': 'Pos.',
+        'light': 'Light',
+        'battery': 'Battery',
+        'pleth': 'Pleth',
+        'pulse': 'Pulse',
+        'spo2': 'SPO2',
+    },
 )
+# fmt: on
 MONTAGES = (PG12,)
 
 # Header fields stored once per block (4 Hz): role -> (offset, size, unit)
@@ -77,8 +91,14 @@ HEADER_FIELDS = {
     'spo2': (13, 1, '%'),
 }
 
-POSITIONS = {0: 'prone', 600: 'upright', 1300: 'left', 2000: 'right',
-             2500: 'upside down', 3000: 'supine'}
+POSITIONS = {
+    0: 'prone',
+    600: 'upright',
+    1300: 'left',
+    2000: 'right',
+    2500: 'upside down',
+    3000: 'supine',
+}
 
 
 @dataclass
@@ -116,7 +136,8 @@ def detect_montage(konfig):
         'unknown channel configuration in konfig.dt2: '
         + ', '.join(f'{c.name} ({c.samples_per_block * 4} Hz)' for c in konfig.channels)
         + '. Only the 12-channel PG montage is known so far; a sample recording of this '
-          'configuration would allow adding it.')
+        'configuration would allow adding it.'
+    )
 
 
 def _states(raw):
@@ -166,28 +187,35 @@ def read_dtx(path, konfig='auto', montage=None):
     if len(raw) < FIRST_BLOCK + BLOCK_BYTES:
         raise ValueError(f'{path}: too small for a DTX recording')
     n = (len(raw) - FIRST_BLOCK) // BLOCK_BYTES
-    trailing = raw[FIRST_BLOCK + n * BLOCK_BYTES:]
-    blocks = raw[FIRST_BLOCK:FIRST_BLOCK + n * BLOCK_BYTES].reshape(n, BLOCK_BYTES)
+    trailing = raw[FIRST_BLOCK + n * BLOCK_BYTES :]
+    blocks = raw[FIRST_BLOCK : FIRST_BLOCK + n * BLOCK_BYTES].reshape(n, BLOCK_BYTES)
     header = blocks[:, :HEADER_BYTES]
-    body = blocks[:, HEADER_BYTES:HEADER_BYTES + NIBBLE_BYTES]
+    body = blocks[:, HEADER_BYTES : HEADER_BYTES + NIBBLE_BYTES]
     nibbles = np.empty((n, 2 * NIBBLE_BYTES), dtype=np.int64)
     nibbles[:, 0::2], nibbles[:, 1::2] = body >> 4, body & 15
 
-    tail = np.vstack([raw[PREAMBLE_BYTES:FIRST_BLOCK],
-                      blocks[:, HEADER_BYTES + NIBBLE_BYTES:]])
+    tail = np.vstack([raw[PREAMBLE_BYTES:FIRST_BLOCK], blocks[:, HEADER_BYTES + NIBBLE_BYTES :]])
     tail_pred, tail_index = _states(tail)
 
     labels = dict(montage.default_labels)
     if konfig is not None:
-        labels.update({role: c.name for role, c in zip(montage.roles, konfig.channels) if c.name})
+        channels = zip(montage.roles, konfig.channels, strict=False)
+        labels.update({role: c.name for role, c in channels if c.name})
 
     signals, consistency = {}, {}
     for c, role in enumerate(montage.tail):
-        out, pred, index = _decode(nibbles, montage.slots(role), tail_pred[:-1, c],
-                                   tail_index[:-1, c], tail_pred[1:, c], adpcm.INT16)
+        out, pred, index = _decode(
+            nibbles,
+            montage.slots(role),
+            tail_pred[:-1, c],
+            tail_index[:-1, c],
+            tail_pred[1:, c],
+            adpcm.INT16,
+        )
         signals[role] = Signal(labels[role], montage.rates[role], out.ravel().astype(np.int16))
-        consistency[role] = _reachable(pred, index, tail_pred[1:, c], tail_index[1:, c],
-                                       adpcm.INT16).mean()
+        consistency[role] = _reachable(
+            pred, index, tail_pred[1:, c], tail_index[1:, c], adpcm.INT16
+        ).mean()
 
     # The header ADPCM channel: a block header holds the state at the block's start, so the
     # final sample of block i is the state in header i+1 (for the last complete block: the
@@ -203,13 +231,15 @@ def read_dtx(path, konfig='auto', montage=None):
         next_pred = np.r_[h_pred[1:], h_pred[-1]]
         next_index = np.r_[h_index[1:], h_index[-1]]
         checked = n - 1
-    out, pred, index = _decode(nibbles, montage.slots(role), h_pred, h_index, next_pred,
-                               adpcm.UINT8)
+    out, pred, index = _decode(
+        nibbles, montage.slots(role), h_pred, h_index, next_pred, adpcm.UINT8
+    )
     if checked < n:
         out[-1, -1] = out[-1, -2]
     signals[role] = Signal(labels[role], montage.rates[role], out.ravel().astype(np.uint8))
-    consistency[role] = _reachable(pred[:checked], index[:checked], next_pred[:checked],
-                                   next_index[:checked], adpcm.UINT8).mean()
+    consistency[role] = _reachable(
+        pred[:checked], index[:checked], next_pred[:checked], next_index[:checked], adpcm.UINT8
+    ).mean()
 
     for role, (offset, size, unit) in HEADER_FIELDS.items():
         value = h[:, offset] if size == 1 else (h[:, offset] << 8) | h[:, offset + 1]
@@ -217,5 +247,13 @@ def read_dtx(path, konfig='auto', montage=None):
         signals[role] = Signal(label, 1 / BLOCK_SECONDS, value.astype(np.int32), unit)
 
     start = konfig.programmed if konfig is not None else None
-    return Recording(signals=signals, start=start, blocks=n, trailing_bytes=len(trailing),
-                     consistency=consistency, montage=montage, konfig=konfig, header=header)
+    return Recording(
+        signals=signals,
+        start=start,
+        blocks=n,
+        trailing_bytes=len(trailing),
+        consistency=consistency,
+        montage=montage,
+        konfig=konfig,
+        header=header,
+    )

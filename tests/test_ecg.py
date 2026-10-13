@@ -3,12 +3,12 @@ import pytest
 
 pytest.importorskip('scipy')
 
-from somnoscreen_dtx.ecg import clean_ecg  # noqa: E402
+from somnoscreen_dtx.ecg import clean_ecg
 
 
 def power_at(x, freq, rate=256):
     spectrum = np.abs(np.fft.rfft(x)) ** 2
-    return spectrum[int(round(freq * len(x) / rate))]
+    return spectrum[round(freq * len(x) / rate)]
 
 
 def test_clock_locked_interference_is_removed():

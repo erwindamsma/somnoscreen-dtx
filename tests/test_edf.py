@@ -3,7 +3,6 @@ import pytest
 
 from somnoscreen_dtx import read_dtx, write_edf
 from somnoscreen_dtx.cli import main
-
 from synth import make_dtx, make_konfig, make_signals
 
 BLOCKS = 40
@@ -24,18 +23,20 @@ def read_edf(path):
     raw = path.read_bytes()
     ns = int(raw[252:256])
     records = int(raw[236:244])
-    h = raw[256:256 * (ns + 1)]
+    h = raw[256 : 256 * (ns + 1)]
 
     def column(offset, width):
-        return [h[offset * ns + i * width:offset * ns + (i + 1) * width].decode().strip()
-                for i in range(ns)]
+        return [
+            h[offset * ns + i * width : offset * ns + (i + 1) * width].decode().strip()
+            for i in range(ns)
+        ]
 
     labels = column(0, 16)
     per_record = [int(x) for x in column(16 + 80 + 8 + 8 + 8 + 8 + 8 + 80, 8)]
-    data = np.frombuffer(raw[256 * (ns + 1):], '<i2').reshape(records, sum(per_record))
+    data = np.frombuffer(raw[256 * (ns + 1) :], '<i2').reshape(records, sum(per_record))
     signals, start = {}, 0
-    for label, n in zip(labels, per_record):
-        signals[label] = data[:, start:start + n].ravel().astype(np.int64)
+    for label, n in zip(labels, per_record, strict=True):
+        signals[label] = data[:, start : start + n].ravel().astype(np.int64)
         start += n
     return raw[:256], signals
 

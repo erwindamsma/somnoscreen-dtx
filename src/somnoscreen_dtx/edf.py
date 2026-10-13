@@ -1,11 +1,12 @@
 """EDF export: one 0.25-s data record per DTX block, values exactly as decoded."""
+
 import datetime as dt
 
 import numpy as np
 
 from .dtx import BLOCK_SECONDS
 
-MONTHS = 'JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC'.split()
+MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
 
 def _field(value, width):
@@ -22,7 +23,7 @@ def _patient_field(konfig):
     if len(b) == 8 and b.isdigit() and 1 <= int(b[2:4]) <= 12:
         birth = f'{b[:2]}-{MONTHS[int(b[2:4]) - 1]}-{b[4:]}'
     name = '_'.join(part for part in (konfig.surname, konfig.initials) if part) or 'X'
-    return f"X {konfig.sex or 'X'} {birth} {name.replace(' ', '_')}"
+    return f'X {konfig.sex or "X"} {birth} {name.replace(" ", "_")}'
 
 
 def write_edf(recording, path, clean_ecg=False, include_patient=False):
@@ -33,12 +34,12 @@ def write_edf(recording, path, clean_ecg=False, include_patient=False):
     include_patient copies name, sex and birth date from konfig.dt2 into the header;
     by default the patient field is anonymous.
     """
-    per_block = {role: int(round(s.rate * BLOCK_SECONDS)) for role, s in recording.signals.items()}
-    roles = list(recording.montage.roles) + ['header_byte5']
+    per_block = {role: round(s.rate * BLOCK_SECONDS) for role, s in recording.signals.items()}
+    roles = [*recording.montage.roles, 'header_byte5']
     channels = []
     for role in roles:
         s = recording.signals[role]
-        data = s.data[:recording.blocks * per_block[role]].astype(np.int64)
+        data = s.data[: recording.blocks * per_block[role]].astype(np.int64)
         if np.issubdtype(s.data.dtype, np.integer) and s.data.dtype.itemsize <= 2:
             lo, hi = np.iinfo(s.data.dtype).min, np.iinfo(s.data.dtype).max
         else:
@@ -48,10 +49,19 @@ def write_edf(recording, path, clean_ecg=False, include_patient=False):
         channels.append((s.label, s.unit, per_block[role], data, lo, hi))
     if clean_ecg:
         from .ecg import clean_ecg as clean
+
         ecg = recording.signals['ecg']
         cleaned = np.clip(np.round(clean(ecg.data, ecg.rate)), -32768, 32767).astype(np.int64)
-        channels.append(('ECG cleaned', ecg.unit, per_block['ecg'],
-                         cleaned[:recording.blocks * per_block['ecg']], -32768, 32767))
+        channels.append(
+            (
+                'ECG cleaned',
+                ecg.unit,
+                per_block['ecg'],
+                cleaned[: recording.blocks * per_block['ecg']],
+                -32768,
+                32767,
+            )
+        )
 
     start = recording.start or dt.datetime(1985, 1, 1)
     patient = 'X X X X'
@@ -66,15 +76,23 @@ def write_edf(recording, path, clean_ecg=False, include_patient=False):
     head += _field(256 * (ns + 1), 8) + _field('', 44)
     head += _field(recording.blocks, 8) + _field(f'{BLOCK_SECONDS:g}', 8) + _field(ns, 4)
     columns = [
-        (16, lambda c: c[0]), (80, lambda c: ''), (8, lambda c: c[1]),
-        (8, lambda c: c[4]), (8, lambda c: c[5]), (8, lambda c: c[4]), (8, lambda c: c[5]),
-        (80, lambda c: ''), (8, lambda c: c[2]), (32, lambda c: ''),
+        (16, lambda c: c[0]),
+        (80, lambda c: ''),
+        (8, lambda c: c[1]),
+        (8, lambda c: c[4]),
+        (8, lambda c: c[5]),
+        (8, lambda c: c[4]),
+        (8, lambda c: c[5]),
+        (80, lambda c: ''),
+        (8, lambda c: c[2]),
+        (32, lambda c: ''),
     ]
     for width, value in columns:
         head += b''.join(_field(value(c), width) for c in channels)
 
     records = np.concatenate(
-        [c[3].astype('<i2').reshape(recording.blocks, c[2]) for c in channels], axis=1)
+        [c[3].astype('<i2').reshape(recording.blocks, c[2]) for c in channels], axis=1
+    )
     with open(path, 'wb') as fh:
         fh.write(head)
         fh.write(records.tobytes())
