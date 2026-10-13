@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new push to a pull request cancels its superseded run; a run on main is never cancelled once it has started.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - name: Install ruff
+        run: pip install "ruff>=0.15"
+
+      - name: Ruff check
+        run: ruff check --output-format=github .
+
+      - name: Ruff format
+        run: ruff format --check .
+
+  test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        python: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        include:
+          - { os: windows-latest, python: '3.10' }
+          - { os: windows-latest, python: '3.14' }
+          - { os: macos-latest, python: '3.10' }
+          - { os: macos-latest, python: '3.14' }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install ".[test]"
+
+      - name: Tests
+        run: pytest
+
+  package:
+    name: Build and inspect the package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - name: Build
+        run: |
+          pip install build twine
+          python -m build
+
+      # Metadata and README rendering, then an allowlist of the files in the wheel and the sdist: no recordings,
+      # EDF files or anything else that was not meant to ship.
+      - name: Inspect
+        run: |
+          twine check --strict dist/*
+          python tools/check_dist.py dist
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/*
+          if-no-files-found: error
+
+  # The check the main ruleset requires: one name for the whole matrix, so the ruleset does not have to list every leg.
+  result:
+    name: CI result
+    needs: [lint, test, package]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: All jobs passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Lint, tests and package: $RESULTS"
+          for result in $RESULTS; do [ "$result" = success ] || exit 1; done

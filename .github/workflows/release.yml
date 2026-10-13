@@ -1,0 +1,144 @@
+name: Release
+
+# Runs when a version tag is pushed (v1.2.3, or v1.2.3rc1 for a prerelease) and creates the GitHub release with the
+# wheel and the sdist. Publishing to PyPI is optional: set the repository variable PUBLISH_TO_PYPI to "true" once a PyPI
+# trusted publisher for this repository, release.yml and the environment "pypi" exists.
+#
+# Three jobs, each with only the permissions it needs:
+#   build           contents: read. Checkout, install, tests, build and package inspection: everything that runs
+#                   third-party code. Uploads the package and the release notes.
+#   publish         id-token: write only, in the environment "pypi". No checkout, no build: downloads the package and
+#                   publishes it through trusted publishing (no long-lived API token).
+#   github-release  contents: write only. No checkout: downloads the package and the release notes, creates the release.
+#
+# Every action is pinned to a commit SHA, with its release tag in the trailing comment, because this workflow can hold
+# publishing credentials. Dependabot (github-actions) updates the SHA and the comment together.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build, test and inspect
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      - name: Version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Install
+        run: pip install ".[test]" build twine
+
+      - name: Tests
+        run: pytest
+
+      # The tag must name the version in the code (somnoscreen_dtx.__version__), so the package and the release agree.
+      - name: Version check
+        run: |
+          code=$(python -c "import somnoscreen_dtx; print(somnoscreen_dtx.__version__)")
+          if [ "$code" != "$VERSION" ]; then
+            echo "::error::tag v$VERSION does not match somnoscreen_dtx.__version__ $code"
+            exit 1
+          fi
+
+      - name: Build and inspect
+        run: |
+          python -m build
+          twine check --strict dist/*
+          python tools/check_dist.py dist --version "$VERSION"
+
+      # The CHANGELOG section "## [<version>] - <date>". A stable release without one fails here, before anything is
+      # published; a prerelease falls back to a pointer at CHANGELOG.md.
+      - name: Release notes from CHANGELOG
+        run: |
+          set -euo pipefail
+          awk -v ver="$VERSION" '
+            /^## / { if (found) exit; if (index($0, "[" ver "]") > 0) { found = 1; next } }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            case "$VERSION" in
+              *[a-z]*) echo "See CHANGELOG.md for the changes in $VERSION." > release-notes.md ;;
+              *)
+                echo "::error::CHANGELOG.md has no section '## [$VERSION]' with release notes; a stable release needs one"
+                exit 1
+                ;;
+            esac
+          fi
+          cat release-notes.md
+
+      - name: Upload the package and the release notes
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: |
+            dist/*
+            release-notes.md
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    if: vars.PUBLISH_TO_PYPI == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Download the package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      - name: Publish (trusted publishing)
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: release/dist/
+
+  github-release:
+    name: GitHub release
+    needs: [build, publish]
+    # Also when publishing to PyPI is switched off (skipped), but never after a failed publish.
+    if: always() && needs.build.result == 'success' && contains(fromJSON('["success", "skipped"]'), needs.publish.result)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download the package and the release notes
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          flags=()
+          case "${GITHUB_REF_NAME#v}" in *[a-z]*) flags=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" release/dist/* --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "$GITHUB_REF_NAME" --notes-file release/release-notes.md "${flags[@]}"

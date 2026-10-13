@@ -1,0 +1,19 @@
+version: 2
+# Minor and patch updates arrive grouped, one pull request per ecosystem, to keep the number of CI runs down.
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # Also keeps release.yml's SHA pins current: it updates the commit SHA and the version in the trailing comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
