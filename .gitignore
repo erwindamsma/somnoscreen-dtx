@@ -1,0 +1,13 @@
+# Recordings contain patient data: never commit them
+*.DTX
+*.dtx
+*.dt2
+*.edf
+*.EDF
+
+__pycache__/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/

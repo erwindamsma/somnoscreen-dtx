@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "somnoscreen-dtx"
+version = "0.1.0"
+description = "Read SOMNOscreen plus raw recordings (DATEN1.DTX) and convert them to EDF"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Erwin Damsma" }]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+keywords = ["somnoscreen", "somnomedics", "polygraphy", "sleep", "edf", "dtx", "adpcm"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Intended Audience :: Science/Research",
+]
+
+[project.optional-dependencies]
+ecg = ["scipy>=1.10"]
+test = ["pytest>=7", "scipy>=1.10"]
+
+[project.scripts]
+somnoscreen-dtx = "somnoscreen_dtx.cli:main"
+
+[project.urls]
+Repository = "https://github.com/erwindamsma/somnoscreen-dtx"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
