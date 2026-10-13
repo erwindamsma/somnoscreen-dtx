@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import __version__
 from .dtx import POSITIONS, read_dtx
 from .edf import write_edf
 
@@ -63,6 +64,7 @@ def main(argv=None):
         prog='somnoscreen-dtx',
         description='Read SOMNOscreen plus raw recordings (DATEN1.DTX + konfig.dt2).',
     )
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     sub = parser.add_subparsers(dest='command', required=True)
 
     p = sub.add_parser('info', help='show recording details and a decoding check')
