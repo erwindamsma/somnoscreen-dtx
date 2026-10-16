@@ -6,6 +6,10 @@ The release workflow publishes the section whose heading matches the tag (`## [1
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-16
+
+The first release.
+
 ### Added
 
 - Decoder for `DATEN1.DTX` and reader for `konfig.dt2` of a SOMNOscreen plus recording with the 12-channel PG montage: thermistor and pressure flow, thorax and abdomen belts, snore, ECG-AUX, pleth, SpO2, pulse, body position, light and battery, at their native rates (256, 128, 32 and 4 Hz).
