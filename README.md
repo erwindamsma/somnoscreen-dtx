@@ -12,6 +12,9 @@ The file format is not publicly documented. It was worked out from a recording a
 described in [FORMAT.md](FORMAT.md). In short: 0.25-second blocks of 4-bit IMA ADPCM, with
 the ADPCM state stored after every block, which lets the decoder verify its own output.
 
+The story behind it:
+[Reading my sleep study before the hospital did](https://damsma.dev/notes/reading-my-sleep-study/).
+
 > **Not a medical device.** This is an independent project, not affiliated with or endorsed
 > by SOMNOmedics. It reads files; it does not score or interpret them. Do not use it for
 > diagnosis.
